@@ -1,0 +1,291 @@
+<Window xmlns="https://github.com/avaloniaui"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
+        xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
+        xmlns:local="using:Routegraph"
+        mc:Ignorable="d"
+        x:Class="Routegraph.MainWindow"
+        x:DataType="local:MainWindow"
+        Title="Routegraph"
+        Width="1180"
+        Height="760"
+        MinWidth="900"
+        MinHeight="600"
+        Background="#0B1020"
+        Foreground="#E6EAF2">
+  <Window.Styles>
+    <Style Selector="TextBlock.muted">
+      <Setter Property="Foreground" Value="#8994AA" />
+    </Style>
+    <Style Selector="TextBlock.label">
+      <Setter Property="Foreground" Value="#8994AA" />
+      <Setter Property="FontSize" Value="11" />
+      <Setter Property="FontWeight" Value="SemiBold" />
+    </Style>
+    <Style Selector="Button.primary">
+      <Setter Property="Background" Value="#5B7CFA" />
+      <Setter Property="Foreground" Value="White" />
+      <Setter Property="FontWeight" Value="SemiBold" />
+      <Setter Property="Padding" Value="20,11" />
+      <Setter Property="CornerRadius" Value="9" />
+    </Style>
+    <Style Selector="Button.stop">
+      <Setter Property="Background" Value="#273149" />
+      <Setter Property="Foreground" Value="#E6EAF2" />
+      <Setter Property="Padding" Value="18,11" />
+      <Setter Property="CornerRadius" Value="9" />
+    </Style>
+    <Style Selector="TextBox.target">
+      <Setter Property="Background" Value="#11192B" />
+      <Setter Property="Foreground" Value="#E6EAF2" />
+      <Setter Property="BorderBrush" Value="#273149" />
+      <Setter Property="BorderThickness" Value="1" />
+      <Setter Property="Padding" Value="14,11" />
+      <Setter Property="CornerRadius" Value="8" />
+    </Style>
+    <Style Selector="Border.column-resizer">
+      <Setter Property="Background" Value="Transparent" />
+      <Setter Property="BorderBrush" Value="#52617F" />
+      <Setter Property="BorderThickness" Value="1,0,0,0" />
+    </Style>
+    <Style Selector="Border.column-resizer:pointerover">
+      <Setter Property="BorderBrush" Value="#9BB0E5" />
+    </Style>
+  </Window.Styles>
+
+  <Grid RowDefinitions="Auto,Auto,Auto,*,Auto" Margin="30">
+    <Grid ColumnDefinitions="*,Auto" Margin="0,0,0,24">
+      <StackPanel Spacing="5">
+        <StackPanel Orientation="Horizontal" Spacing="11" VerticalAlignment="Center">
+          <Border Width="34" Height="34" CornerRadius="10" Background="#182342">
+            <TextBlock Text="↗" Foreground="#83A0FF" FontSize="21"
+                       HorizontalAlignment="Center" VerticalAlignment="Center" />
+          </Border>
+          <TextBlock Text="routegraph" FontSize="25" FontWeight="Bold"
+                     VerticalAlignment="Center" />
+        </StackPanel>
+        <TextBlock Text="Trace the path. Watch every hop." Classes="muted" Margin="45,0,0,0" />
+      </StackPanel>
+      <Border Grid.Column="1" Background="#11192B" CornerRadius="20"
+              Padding="12,7" VerticalAlignment="Center">
+        <StackPanel Orientation="Horizontal" Spacing="8">
+          <Ellipse x:Name="StatusDot" Width="8" Height="8" Fill="#5B7CFA" />
+          <TextBlock x:Name="StatusText" Text="Ready" FontSize="12" VerticalAlignment="Center" />
+        </StackPanel>
+      </Border>
+    </Grid>
+
+    <Border Grid.Row="1" Background="#11192B" BorderBrush="#202A40"
+            BorderThickness="1" CornerRadius="14" Padding="18" Margin="0,0,0,18">
+      <Grid RowDefinitions="Auto,Auto" ColumnDefinitions="*,Auto,Auto" ColumnSpacing="18" RowSpacing="16">
+        <StackPanel Spacing="8">
+          <TextBlock Text="TARGET HOST" Classes="label" />
+          <TextBox x:Name="TargetInput" Classes="target"
+                   PlaceholderText="Enter a hostname or IP address (e.g. example.com or 2001:db8::1)"
+                   KeyDown="TargetInput_OnKeyDown" />
+        </StackPanel>
+        <StackPanel Grid.Row="1" Spacing="7">
+          <TextBlock Text="ROUTE PROBES" Classes="label" />
+          <StackPanel Orientation="Horizontal" Spacing="16">
+            <RadioButton x:Name="IcmpProbeOption" GroupName="ProbeMode"
+                         Content="ICMP" IsChecked="True" />
+            <RadioButton x:Name="UdpProbeOption" GroupName="ProbeMode"
+                         Content="UDP" />
+          </StackPanel>
+        </StackPanel>
+        <StackPanel Grid.Row="1" Grid.Column="1" Spacing="7">
+          <TextBlock Text="IP VERSION" Classes="label" />
+          <StackPanel Orientation="Horizontal" Spacing="12">
+            <RadioButton x:Name="Ipv4OnlyOption" GroupName="IpVersion"
+                         Content="IPv4 only" />
+            <RadioButton x:Name="Ipv6OnlyOption" GroupName="IpVersion"
+                         Content="IPv6 only" />
+            <RadioButton x:Name="Ipv6PreferredOption" GroupName="IpVersion"
+                         Content="IPv6 if possible" IsChecked="True" />
+          </StackPanel>
+        </StackPanel>
+        <StackPanel Grid.Row="1" Grid.Column="2" Orientation="Horizontal"
+                    Spacing="10" VerticalAlignment="Bottom">
+          <Button x:Name="StartButton" Classes="primary"
+                  Content="Start tracing"
+                Click="StartButton_OnClick" />
+          <Button x:Name="StopButton" Classes="stop"
+                Content="Stop" IsEnabled="False"
+                Click="StopButton_OnClick" />
+        </StackPanel>
+      </Grid>
+    </Border>
+
+    <Grid Grid.Row="2" ColumnDefinitions="*,*,*,*,*" ColumnSpacing="12" Margin="0,0,0,20">
+      <Border Background="#11192B" BorderBrush="#202A40" BorderThickness="1"
+              CornerRadius="11" Padding="14,12">
+        <StackPanel Spacing="5">
+          <TextBlock Text="HOPS FOUND" Classes="label" />
+          <TextBlock x:Name="HopCountText" Text="0" FontSize="20" FontWeight="SemiBold" />
+        </StackPanel>
+      </Border>
+      <Border Grid.Column="1" Background="#11192B" BorderBrush="#202A40" BorderThickness="1"
+              CornerRadius="11" Padding="14,12">
+        <StackPanel Spacing="5">
+          <TextBlock Text="PROBES SENT" Classes="label" />
+          <TextBlock x:Name="ProbeCountText" Text="0" FontSize="20" FontWeight="SemiBold" />
+        </StackPanel>
+      </Border>
+      <Border Grid.Column="2" Background="#11192B" BorderBrush="#202A40" BorderThickness="1"
+              CornerRadius="11" Padding="14,12">
+        <StackPanel Spacing="5">
+          <TextBlock Text="PACKET LOSS" Classes="label" />
+          <TextBlock x:Name="LossText" Text="—" FontSize="20" FontWeight="SemiBold" />
+        </StackPanel>
+      </Border>
+      <Border Grid.Column="3" Background="#11192B" BorderBrush="#202A40" BorderThickness="1"
+              CornerRadius="11" Padding="14,12">
+        <StackPanel Spacing="5">
+          <TextBlock Text="SAMPLE INTERVAL" Classes="label" />
+          <TextBlock Text="1 second / hop" FontSize="18" FontWeight="SemiBold" />
+        </StackPanel>
+      </Border>
+      <Border Grid.Column="4" Background="#11192B" BorderBrush="#202A40" BorderThickness="1"
+              CornerRadius="11" Padding="14,12">
+        <StackPanel Spacing="5">
+          <TextBlock Text="TARGET IP" Classes="label" />
+          <TextBlock x:Name="TargetIpText" Text="—" FontSize="12"
+                     FontFamily="Cascadia Code, Menlo, monospace"
+                     TextWrapping="Wrap" />
+        </StackPanel>
+      </Border>
+    </Grid>
+
+    <Border Grid.Row="3" Background="#0E1525" BorderBrush="#202A40"
+            BorderThickness="1" CornerRadius="14" ClipToBounds="True">
+      <Grid RowDefinitions="Auto,*">
+        <Border Background="#131C2E" Padding="16,13" BorderBrush="#202A40"
+                BorderThickness="0,0,0,1">
+          <Grid x:Name="HeaderGrid" Classes="result-columns"
+                ColumnDefinitions="54,130,*,160,100,68,68,68,68" ColumnSpacing="8">
+            <TextBlock Text="HOP" Classes="label" />
+            <TextBlock Grid.Column="1" Text="IP ADDRESS" Classes="label" />
+            <TextBlock Grid.Column="2" Text="HOSTNAME" Classes="label" />
+            <StackPanel Grid.Column="3" Spacing="2">
+              <Grid ColumnDefinitions="*,Auto">
+                <TextBlock Text="ROUTE RTT" Classes="label" />
+                <TextBlock x:Name="GraphScaleText" Grid.Column="1" Text="0 — 10 ms"
+                           Classes="muted" FontSize="9" />
+              </Grid>
+              <TextBlock Text="min–max range · avg dot" Classes="muted" FontSize="9" />
+            </StackPanel>
+            <TextBlock Grid.Column="4" Text="LAST" Classes="label" />
+            <TextBlock Grid.Column="5" Text="MIN" Classes="label" />
+            <TextBlock Grid.Column="6" Text="AVG" Classes="label" />
+            <TextBlock Grid.Column="7" Text="MAX" Classes="label" />
+            <TextBlock Grid.Column="8" Text="LOSS" Classes="label" />
+            <Border Grid.Column="0" Classes="column-resizer" Tag="0"
+                    HorizontalAlignment="Right" Width="8" Cursor="SizeWestEast"
+                    PointerPressed="ColumnResize_OnPointerPressed"
+                    PointerMoved="ColumnResize_OnPointerMoved"
+                    PointerReleased="ColumnResize_OnPointerReleased" />
+            <Border Grid.Column="1" Classes="column-resizer" Tag="1"
+                    HorizontalAlignment="Right" Width="8" Cursor="SizeWestEast"
+                    PointerPressed="ColumnResize_OnPointerPressed"
+                    PointerMoved="ColumnResize_OnPointerMoved"
+                    PointerReleased="ColumnResize_OnPointerReleased" />
+            <Border Grid.Column="2" Classes="column-resizer" Tag="2"
+                    HorizontalAlignment="Right" Width="8" Cursor="SizeWestEast"
+                    PointerPressed="ColumnResize_OnPointerPressed"
+                    PointerMoved="ColumnResize_OnPointerMoved"
+                    PointerReleased="ColumnResize_OnPointerReleased" />
+            <Border Grid.Column="3" Classes="column-resizer" Tag="3"
+                    HorizontalAlignment="Right" Width="8" Cursor="SizeWestEast"
+                    PointerPressed="ColumnResize_OnPointerPressed"
+                    PointerMoved="ColumnResize_OnPointerMoved"
+                    PointerReleased="ColumnResize_OnPointerReleased" />
+            <Border Grid.Column="4" Classes="column-resizer" Tag="4"
+                    HorizontalAlignment="Right" Width="8" Cursor="SizeWestEast"
+                    PointerPressed="ColumnResize_OnPointerPressed"
+                    PointerMoved="ColumnResize_OnPointerMoved"
+                    PointerReleased="ColumnResize_OnPointerReleased" />
+            <Border Grid.Column="5" Classes="column-resizer" Tag="5"
+                    HorizontalAlignment="Right" Width="8" Cursor="SizeWestEast"
+                    PointerPressed="ColumnResize_OnPointerPressed"
+                    PointerMoved="ColumnResize_OnPointerMoved"
+                    PointerReleased="ColumnResize_OnPointerReleased" />
+            <Border Grid.Column="6" Classes="column-resizer" Tag="6"
+                    HorizontalAlignment="Right" Width="8" Cursor="SizeWestEast"
+                    PointerPressed="ColumnResize_OnPointerPressed"
+                    PointerMoved="ColumnResize_OnPointerMoved"
+                    PointerReleased="ColumnResize_OnPointerReleased" />
+            <Border Grid.Column="7" Classes="column-resizer" Tag="7"
+                    HorizontalAlignment="Right" Width="8" Cursor="SizeWestEast"
+                    PointerPressed="ColumnResize_OnPointerPressed"
+                    PointerMoved="ColumnResize_OnPointerMoved"
+                    PointerReleased="ColumnResize_OnPointerReleased" />
+          </Grid>
+        </Border>
+        <ScrollViewer Grid.Row="1" VerticalScrollBarVisibility="Auto">
+          <ItemsControl ItemsSource="{Binding HopRows}">
+            <ItemsControl.DataTemplates>
+              <DataTemplate x:DataType="local:HopMonitor">
+                <Border BorderBrush="#1A2437" BorderThickness="0,0,0,1"
+                        Padding="16,14">
+                  <Grid Classes="result-columns"
+                        ColumnDefinitions="54,130,*,160,100,68,68,68,68" ColumnSpacing="8">
+                    <TextBlock Grid.Column="0" Text="{Binding NumberText}"
+                               Foreground="#83A0FF" FontWeight="SemiBold"
+                               VerticalAlignment="Center" />
+                    <TextBlock Grid.Column="1" Text="{Binding Address}"
+                               FontFamily="Cascadia Code, Menlo, monospace"
+                               FontSize="12" VerticalAlignment="Center" />
+                    <TextBlock Grid.Column="2" Text="{Binding HostName}"
+                               Classes="muted" TextTrimming="CharacterEllipsis"
+                               FontStyle="{Binding HostNameFontStyle}"
+                               ToolTip.Tip="{Binding HostNameSourceDescription}"
+                               VerticalAlignment="Center" />
+                    <local:LatencyRangeGraph Grid.Column="3"
+                                             Minimum="{Binding MinimumLatencyMilliseconds}"
+                                             Average="{Binding AverageLatencyMilliseconds}"
+                                             Maximum="{Binding MaximumLatencyMilliseconds}"
+                                             ScaleMaximum="{Binding GraphScaleMaximum}"
+                                             HasSamples="{Binding HasSamples}"
+                                             Height="28" VerticalAlignment="Center" />
+                    <TextBlock Grid.Column="4" Text="{Binding LastText}"
+                               FontWeight="SemiBold" VerticalAlignment="Center" />
+                    <TextBlock Grid.Column="5" Text="{Binding MinimumText}"
+                               Classes="muted" VerticalAlignment="Center" />
+                    <TextBlock Grid.Column="6" Text="{Binding AverageText}"
+                               Foreground="#B7C5E5" VerticalAlignment="Center" />
+                    <TextBlock Grid.Column="7" Text="{Binding MaximumText}"
+                               Classes="muted" VerticalAlignment="Center" />
+                    <TextBlock Grid.Column="8" Text="{Binding LossText}"
+                               Foreground="#B7C5E5" VerticalAlignment="Center" />
+                  </Grid>
+                </Border>
+              </DataTemplate>
+              <DataTemplate x:DataType="local:HopGap">
+                <Border Background="#11192B" BorderBrush="#273149" BorderThickness="0,0,0,1"
+                        Padding="16,8">
+                  <Grid Classes="result-columns"
+                        ColumnDefinitions="54,130,*,160,100,68,68,68,68" ColumnSpacing="8">
+                    <TextBlock Grid.Column="0" Text="{Binding NumberText}"
+                               Foreground="#8994AA" FontWeight="SemiBold"
+                               VerticalAlignment="Center" />
+                    <TextBlock Grid.Column="1" Grid.ColumnSpan="8"
+                               Text="{Binding Description}" Classes="muted"
+                               FontSize="11" FontStyle="Italic"
+                               VerticalAlignment="Center" />
+                  </Grid>
+                </Border>
+              </DataTemplate>
+            </ItemsControl.DataTemplates>
+          </ItemsControl>
+        </ScrollViewer>
+      </Grid>
+    </Border>
+
+    <Grid Grid.Row="4" ColumnDefinitions="*,Auto" Margin="2,14,2,0">
+      <TextBlock x:Name="DetailText" Text="Enter a target to discover its route."
+                 Classes="muted" FontSize="12" VerticalAlignment="Center" />
+      <TextBlock Grid.Column="1" Text="Route probes: ICMP/UDP · continuous per-hop pings use ICMP"
+                 Classes="muted" FontSize="11" VerticalAlignment="Center" />
+    </Grid>
+  </Grid>
+</Window>
