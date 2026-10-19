@@ -81,17 +81,12 @@
         <StackPanel Spacing="8">
           <TextBlock Text="TARGET HOST" Classes="label" />
           <TextBox x:Name="TargetInput" Classes="target"
-                   PlaceholderText="Enter a hostname or IP address (e.g. example.com or 2001:db8::1)"
+                   PlaceholderText="Enter a hostname or IPv4/IPv6 address"
                    KeyDown="TargetInput_OnKeyDown" />
         </StackPanel>
         <StackPanel Grid.Row="1" Spacing="7">
-          <TextBlock Text="ROUTE PROBES" Classes="label" />
-          <StackPanel Orientation="Horizontal" Spacing="16">
-            <RadioButton x:Name="IcmpProbeOption" GroupName="ProbeMode"
-                         Content="ICMP" IsChecked="True" />
-            <RadioButton x:Name="UdpProbeOption" GroupName="ProbeMode"
-                         Content="UDP" />
-          </StackPanel>
+          <TextBlock Text="ROUTE DISCOVERY" Classes="label" />
+          <TextBlock Text="Managed ICMP probes" VerticalAlignment="Center" />
         </StackPanel>
         <StackPanel Grid.Row="1" Grid.Column="1" Spacing="7">
           <TextBlock Text="IP VERSION" Classes="label" />
@@ -284,7 +279,7 @@
     <Grid Grid.Row="4" ColumnDefinitions="*,Auto" Margin="2,14,2,0">
       <TextBlock x:Name="DetailText" Text="Enter a target to discover its route."
                  Classes="muted" FontSize="12" VerticalAlignment="Center" />
-      <TextBlock Grid.Column="1" Text="Route probes: ICMP/UDP · continuous per-hop pings use ICMP"
+      <TextBlock Grid.Column="1" Text="Route probes: ICMP · continuous per-hop pings use ICMP"
                  Classes="muted" FontSize="11" VerticalAlignment="Center" />
     </Grid>
   </Grid>
