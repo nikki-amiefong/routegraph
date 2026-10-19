@@ -3,7 +3,6 @@ using System.Diagnostics;
 using System.Net;
 using System.Net.NetworkInformation;
 using System.Net.Sockets;
-using System.Text.RegularExpressions;
 using Avalonia.Controls;
 using Avalonia.Input;
 using Avalonia.Media;
@@ -14,7 +13,7 @@ namespace Routegraph;
 
 public partial class MainWindow : Window
 {
-    private static readonly Regex HopLinePattern = new(@"^\s*(\d+)\s+(.*)$", RegexOptions.Compiled);
+    private const int MaximumHopLimit = 30;
     private static readonly TimeSpan ProbeTimeout = TimeSpan.FromMilliseconds(1500);
     private static readonly TimeSpan ProbeInterval = TimeSpan.FromSeconds(1);
 
@@ -152,7 +151,7 @@ public partial class MainWindow : Window
             TargetIpText.Text = destination.ToString();
             DetailText.Text = $"Tracing route to {target} ({destination})…";
             SetStatus("Tracing");
-            await TraceRouteAsync(target, destination, IcmpProbeOption.IsChecked == true, cancellation.Token);
+            await TraceRouteAsync(target, destination, cancellation.Token);
 
             if (Hops.Count == 0)
                 DetailText.Text = "Route discovery finished without a responding hop. Monitoring will continue.";
@@ -214,88 +213,22 @@ public partial class MainWindow : Window
     private async Task TraceRouteAsync(
         string targetName,
         IPAddress destination,
-        bool useIcmp,
         CancellationToken cancellationToken)
     {
-        var startInfo = new ProcessStartInfo
+        for (var hopLimit = 1; hopLimit <= MaximumHopLimit; hopLimit++)
         {
-            FileName = destination.AddressFamily == AddressFamily.InterNetworkV6
-                ? "traceroute6"
-                : "traceroute",
-            RedirectStandardOutput = true,
-            RedirectStandardError = true,
-            UseShellExecute = false,
-            CreateNoWindow = true
-        };
-        startInfo.ArgumentList.Add("-n");
-        startInfo.ArgumentList.Add("-m");
-        startInfo.ArgumentList.Add("30");
-        startInfo.ArgumentList.Add("-w");
-        startInfo.ArgumentList.Add("1");
-        startInfo.ArgumentList.Add("-q");
-        startInfo.ArgumentList.Add("1");
-        if (destination.AddressFamily == AddressFamily.InterNetworkV6)
-            startInfo.ArgumentList.Add(useIcmp ? "-I" : "-U");
-        else if (useIcmp)
-            startInfo.ArgumentList.Add("-I");
-        else
-        {
-            startInfo.ArgumentList.Add("-P");
-            startInfo.ArgumentList.Add("udp");
+            var reply = await TraceRouteProbe.SendAsync(
+                destination,
+                hopLimit,
+                ProbeTimeout,
+                cancellationToken);
+
+            if (reply is not null)
+                AddHop(hopLimit, reply.Value.Address, destination, targetName, cancellationToken);
+
+            if (reply?.ReachedDestination == true)
+                break;
         }
-        startInfo.ArgumentList.Add(destination.ToString());
-
-        using var process = new Process { StartInfo = startInfo };
-        if (!process.Start())
-            throw new InvalidOperationException("Could not start the system traceroute command.");
-
-        using var registration = cancellationToken.Register(() =>
-        {
-            try
-            {
-                if (!process.HasExited)
-                    process.Kill(entireProcessTree: true);
-            }
-            catch (ObjectDisposedException)
-            {
-            }
-            catch (InvalidOperationException)
-            {
-            }
-        });
-
-        var errorTask = process.StandardError.ReadToEndAsync(cancellationToken);
-        while (await process.StandardOutput.ReadLineAsync(cancellationToken) is { } line)
-        {
-            var match = HopLinePattern.Match(line);
-            if (!match.Success)
-                continue;
-
-            var hopNumber = int.Parse(match.Groups[1].Value);
-            var address = ExtractHopAddress(match.Groups[2].Value, destination.AddressFamily);
-            if (address is null)
-                continue;
-
-            AddHop(hopNumber, address, destination, targetName, cancellationToken);
-        }
-
-        await process.WaitForExitAsync(cancellationToken);
-        var standardError = await errorTask;
-        if (process.ExitCode != 0 && Hops.Count == 0 && !string.IsNullOrWhiteSpace(standardError))
-            throw new InvalidOperationException($"Traceroute failed: {standardError.Trim()}");
-    }
-
-    private static IPAddress? ExtractHopAddress(string hopDetails, AddressFamily addressFamily)
-    {
-        foreach (var token in hopDetails.Split(' ', StringSplitOptions.RemoveEmptyEntries))
-        {
-            var candidate = token.Trim('(', ')', '[', ']', ',');
-            if (IPAddress.TryParse(candidate, out var address) &&
-                address.AddressFamily == addressFamily)
-                return address;
-        }
-
-        return null;
     }
 
     private void AddHop(
