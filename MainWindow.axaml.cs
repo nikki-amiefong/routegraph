@@ -215,19 +215,75 @@ public partial class MainWindow : Window
         IPAddress destination,
         CancellationToken cancellationToken)
     {
-        for (var hopLimit = 1; hopLimit <= MaximumHopLimit; hopLimit++)
+        var probes = Enumerable.Range(1, MaximumHopLimit)
+            .Select(hopLimit =>
+            {
+                var probeCancellation = CancellationTokenSource.CreateLinkedTokenSource(cancellationToken);
+                var task = TraceRouteProbe.SendAsync(
+                    destination,
+                    hopLimit,
+                    ProbeTimeout,
+                    probeCancellation.Token);
+                return (HopLimit: hopLimit, Cancellation: probeCancellation, Task: task);
+            })
+            .ToArray();
+        var replies = new TraceRouteReply?[MaximumHopLimit];
+        var pending = probes.ToList();
+        int? destinationHopLimit = null;
+
+        try
         {
-            var reply = await TraceRouteProbe.SendAsync(
-                destination,
-                hopLimit,
-                ProbeTimeout,
-                cancellationToken);
+            while (pending.Count > 0)
+            {
+                var completedTask = await Task.WhenAny(pending.Select(probe => probe.Task));
+                var probe = pending.Single(candidate => candidate.Task == completedTask);
+                pending.Remove(probe);
 
-            if (reply is not null)
-                AddHop(hopLimit, reply.Value.Address, destination, targetName, cancellationToken);
+                TraceRouteReply? reply;
+                try
+                {
+                    reply = await probe.Task;
+                }
+                catch (OperationCanceledException) when (!cancellationToken.IsCancellationRequested)
+                {
+                    continue;
+                }
 
-            if (reply?.ReachedDestination == true)
-                break;
+                replies[probe.HopLimit - 1] = reply;
+                if (reply?.ReachedDestination != true)
+                    continue;
+
+                destinationHopLimit = Math.Min(destinationHopLimit ?? probe.HopLimit, probe.HopLimit);
+                foreach (var laterProbe in probes.Where(candidate => candidate.HopLimit > destinationHopLimit))
+                    laterProbe.Cancellation.Cancel();
+            }
+
+            cancellationToken.ThrowIfCancellationRequested();
+            var lastHopLimit = destinationHopLimit ?? MaximumHopLimit;
+            for (var hopLimit = 1; hopLimit <= lastHopLimit; hopLimit++)
+            {
+                var reply = replies[hopLimit - 1];
+                if (reply is not null)
+                    AddHop(hopLimit, reply.Value.Address, destination, targetName, cancellationToken);
+            }
+        }
+        finally
+        {
+            foreach (var probe in probes)
+                probe.Cancellation.Cancel();
+
+            try
+            {
+                await Task.WhenAll(probes.Select(probe => probe.Task));
+            }
+            catch (OperationCanceledException)
+            {
+            }
+            finally
+            {
+                foreach (var probe in probes)
+                    probe.Cancellation.Dispose();
+            }
         }
     }
 
